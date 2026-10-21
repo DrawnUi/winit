@@ -279,6 +279,15 @@ impl<T: 'static> EventLoop<T> {
                 MainEvent::Resume { .. } => {
                     debug!("App Resumed - is running");
                     self.running = true;
+                    // onResume: the activity is in front again. Reported as the end of an
+                    // occlusion, as iOS reports its return to the foreground.
+                    callback(
+                        event::Event::WindowEvent {
+                            window_id: window::WindowId(WindowId),
+                            event: event::WindowEvent::Occluded(false),
+                        },
+                        self.window_target(),
+                    );
                 },
                 MainEvent::SaveState { .. } => {
                     // XXX: how to forward this state to applications?
@@ -288,6 +297,15 @@ impl<T: 'static> EventLoop<T> {
                 MainEvent::Pause => {
                     debug!("App Paused - stopped running");
                     self.running = false;
+                    // onPause: the activity left the front (another app, a system dialog, the
+                    // home screen), while its window may still exist until onStop.
+                    callback(
+                        event::Event::WindowEvent {
+                            window_id: window::WindowId(WindowId),
+                            event: event::WindowEvent::Occluded(true),
+                        },
+                        self.window_target(),
+                    );
                 },
                 MainEvent::Stop => {
                     // XXX: how to forward this state to applications?
